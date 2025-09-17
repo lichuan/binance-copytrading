@@ -1,604 +1,818 @@
+<!DOCTYPE html>
 <html>
-  <head>
+<head>
     <meta charset="UTF-8">
-    <title>It's a trading chart.</title>
-    <link rel="icon" type="image/png" sizes="50x50" href="assets/icons8-binance-50.png">
+    <title>币安K线图 - 专业版</title>
     <style type="text/css">
-      textarea {
-        width: 1270;
-        height: 47;
-        margin-top: 1;
+      :root {
+        --bg-primary: #ffffff;
+        --bg-secondary: #f9f9f9;
+        --text-primary: #333333;
+        --text-secondary: #666666;
+        --border-color: #e0e0e0;
+        --grid-color: rgba(200, 200, 200, 0.3);
+        --up-color: #26a69a;
+        --down-color: #ef5350;
+        --ma5-color: #FF9800;
+        --ma10-color: #2196F3;
+        --ma30-color: #9C27B0;
+      }
+
+      body.dark {
+        --bg-primary: #1e1e1e;
+        --bg-secondary: #2d2d30;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --border-color: #444444;
+        --grid-color: rgba(100, 100, 100, 0.3);
+        --up-color: #26a69a;
+        --down-color: #ef5350;
+      }
+
+      body {
+        margin: 0;
+        padding: 10px;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        transition: background 0.3s, color 0.3s;
+      }
+
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 15px;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        margin-bottom: 10px;
+      }
+
+      .controls {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+      }
+
+      .period-group {
+        display: flex;
+        gap: 5px;
+      }
+
+      .period-btn {
+        padding: 5px 10px;
+        background: transparent;
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        cursor: pointer;
+        border-radius: 4px;
+        transition: all 0.2s;
+      }
+
+      .period-btn:hover {
+        background: var(--border-color);
+      }
+
+      .period-btn.active {
+        background: var(--up-color);
+        color: white;
+        border-color: var(--up-color);
+      }
+
+      .indicators {
+        display: flex;
+        gap: 10px;
+      }
+
+      .indicator-toggle {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        cursor: pointer;
+      }
+
+      .indicator-toggle input {
+        cursor: pointer;
+      }
+
+      .theme-switch {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .switch {
+        position: relative;
+        width: 50px;
+        height: 24px;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 34px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 18px;
+        width: 18px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: var(--up-color);
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(26px);
+      }
+
+      .chart-container {
+        position: relative;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        overflow: hidden;
+        background: var(--bg-primary);
+      }
+
+      #mainChart, #volumeChart {
+        display: block;
+        cursor: crosshair;
+      }
+
+      .info-panel {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 10px 15px;
+        border-radius: 5px;
+        font-size: 12px;
+        pointer-events: none;
+      }
+
+      .info-row {
+        display: flex;
+        gap: 15px;
+        margin: 3px 0;
+      }
+
+      .info-item {
+        display: flex;
+        gap: 5px;
+      }
+
+      .info-label {
+        opacity: 0.8;
+      }
+
+      .info-value {
+        font-weight: bold;
+      }
+
+      .ma-value {
+        padding: 2px 5px;
+        border-radius: 3px;
+      }
+
+      .status-bar {
+        margin-top: 10px;
+        padding: 8px 15px;
+        background: var(--bg-secondary);
+        border-radius: 8px;
+        font-size: 12px;
+        color: var(--text-secondary);
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .help-panel {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 15px;
+        border-radius: 8px;
+        font-size: 11px;
+        max-width: 200px;
+      }
+
+      .help-panel h4 {
+        margin: 0 0 10px 0;
+        color: var(--up-color);
+      }
+
+      .help-item {
+        margin: 5px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .key {
+        background: #444;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-weight: bold;
+        min-width: 20px;
+        text-align: center;
       }
     </style>
-  </head>
-  <body>
-    <div>
-      <select id="symbol" onchange="updateSymbol()">
-        <option value="BTCUSDT:1:3">BTCUSDT</option>
-        <option value="ETHUSDT:2:3">ETHUSDT</option>
-        <option value="SOLUSDT:2:0">SOLUSDT</option>
-        <option value="WCTUSDT:4:0">WCTUSDT</option>
-        <option value="LPTUSDT:3:1">LPTUSDT</option>
-        <option value="XRPUSDT:4:1">XRPUSDT</option>
-        <option value="DOGEUSDT:5:0">DOGEUSDT</option>
-        <option value="1000PEPEUSDT:7:0">1000PEPEUSDT</option>
-        <option value="LINKUSDT:3:2">LINKUSDT</option>
-        <option value="SUIUSDT:4:1">SUIUSDT</option>
-        <option value="TRBUSDT:3:1">TRBUSDT</option>
-        <option value="TAOUSDT:2:3">TAOUSDT</option>
-        <option value="SOPHUSDT:6:0">SOPHUSDT</option>
-        <option value="MOODENGUSDT:5:0">MOODENGUSDT</option>
-        <option value="NXPCUSDT:5:0">NXPCUSDT</option>
-        <option value="KAITOUSDT:4:1">KAITOUSDT</option>
-        <option value="SOLVUSDT:5:0">SOLVUSDT</option>
-        <option value="HYPEUSDT:3:2">HYPEUSDT</option>
-        <option value="PNUTUSDT:5:0">PNUTUSDT</option>
-        <option value="ETHFIUSDT:4:1">ETHFIUSDT</option>
-        <option value="TSTUSDT:4:0">TSTUSDT</option>
-        <option value="HUMAUSDT:6:0">HUMAUSDT</option>
-        <option value="BUSDT:5:0">BUSDT</option>
-        <option value="SOONUSDT:5:0">SOONUSDT</option>
-        <option value="TUTUSDT:5:0">TUTUSDT</option>
-        <option value="OMUSDT:5:1">OMUSDT</option>
-        <option value="INITUSDT:4:0">INITUSDT</option>
-        <option value="UXLINKUSDT:4:0">UXLINKUSDT</option>
-        <option value="EIGENUSDT:4:1">EIGENUSDT</option>
-        <option value="HAEDALUSDT:6:0">HAEDALUSDT</option>
-        <option value="SYRUPUSDT:5:0">SYRUPUSDT</option>
-        <option value="MUBARAKUSDT:5:0">MUBARAKUSDT</option>
-        <option value="PEOPLEUSDT:5:0">PEOPLEUSDT</option>
-        <option value="AIOTUSDT:5:0">AIOTUSDT</option>
-        <option value="PROMPTUSDT:4:0">PROMPTUSDT</option>
-        <option value="RENDERUSDT:3:1">RENDERUSDT</option>
-        <option value="DFUSDT:5:0">DFUSDT</option>
-        <option value="KERNELUSDT:4:0">KERNELUSDT</option>
-        <option value="DEGOUSDT:4:1">DEGOUSDT</option>
-        <option value="LAYERUSDT:4:1">LAYERUSDT</option>
-        <option value="FLMUSDT:4:0">FLMUSDT</option>
-        <option value="GOATUSDT:5:0">GOATUSDT</option>
-        <option value="PARTIUSDT:4:0">PARTIUSDT</option>
-        <option value="TNSRUSDT:4:1">TNSRUSDT</option>
-        <option value="BERAUSDT:3:1">BERAUSDT</option>
-        <option value="SSVUSDT:3:2">SSVUSDT</option>
-        <option value="BRETTUSDT:5:0">BRETTUSDT</option>
-        <option value="NMRUSDT:3:1">NMRUSDT</option>
-        <option value="CAKEUSDT:4:0">CAKEUSDT</option>
-        <option value="AUSDT:5:0">AUSDT</option>
-        <option value="ANIMEUSDT:5:0">ANIMEUSDT</option>
-        <option value="CETUSUSDT:5:0">CETUSUSDT</option>
-        <option value="ZECUSDT:2:3">ZECUSDT</option>
-        <option value="SUSDT:4:0">SUSDT</option>
-        <option value="LQTYUSDT:4:1">LQTYUSDT</option>
-        <option value="IPUSDT:5:1">IPUSDT</option>
-        <option value="SIGNUSDT:5:0">SIGNUSDT</option>
-        <option value="CATIUSDT:4:0">CATIUSDT</option>
-        <option value="DEGENUSDT:6:0">DEGENUSDT</option>
-        <option value="SAFEUSDT:4:0">SAFEUSDT</option>
-        <option value="USUALUSDT:4:0">USUALUSDT</option>
-        <option value="SPELLUSDT:7:0">SPELLUSDT</option>
-        <option value="XVGUSDT:7:0">XVGUSDT</option>
-        <option value="IOTXUSDT:5:0">IOTXUSDT</option>
-        <option value="XMRUSDT:2:3">XMRUSDT</option>
-        <option value="KAVAUSDT:4:1">KAVAUSDT</option>
-        <option value="NEIROETHUSDT:5:0">NEIROETHUSDT</option>
-        <option value="NILUSDT:4:1">NILUSDT</option>
-        <option value="DOODUSDT:7:0">DOODUSDT</option>
-        <option value="ATHUSDT:5:0">ATHUSDT</option>
-        <option value="ACTUSDT:5:0">ACTUSDT</option>
-        <option value="KMNOUSDT:5:0">KMNOUSDT</option>
-        <option value="B2USDT:4:0">B2USDT</option>
-        <option value="PAXGUSDT:2:3">PAXGUSDT</option>
-        <option value="BIOUSDT:5:0">BIOUSDT</option>
-        <option value="ICXUSDT:4:0">ICXUSDT</option>
-        <option value="BABYUSDT:5:0">BABYUSDT</option>
-        <option value="BMTUSDT:4:0">BMTUSDT</option>
-        <option value="SKYAIUSDT:5:0">SKYAIUSDT</option>
-        <option value="GPSUSDT:5:0">GPSUSDT</option>
-        <option value="SXTUSDT:5:0">SXTUSDT</option>
-        <option value="VOXELUSDT:5:0">VOXELUSDT</option>
-        <option value="QNTUSDT:2:1">QNTUSDT</option>
-        <option value="BANANAUSDT:3:1">BANANAUSDT</option>
-        <option value="SAGAUSDT:4:1">SAGAUSDT</option>
-        <option value="VINEUSDT:5:0">VINEUSDT</option>
-        <option value="POLUSDT:5:0">POLUSDT</option>
-        <option value="MERLUSDT:5:0">MERLUSDT</option>
-        <option value="GRASSUSDT:4:1">GRASSUSDT</option>
-        <option value="AERGOUSDT:5:0">AERGOUSDT</option>
-        <option value="PORTALUSDT:4:1">PORTALUSDT</option>
-        <option value="AGTUSDT:6:0">AGTUSDT</option>
-        <option value="PUNDIXUSDT:4:0">PUNDIXUSDT</option>
-        <option value="BANANAS31USDT:6:0">BANANAS31USDT</option>
-        <option value="OGNUSDT:4:0">OGNUSDT</option>
-        <option value="COWUSDT:4:0">COWUSDT</option>
-        <option value="JELLYJELLYUSDT:5:0">JELLYJELLYUSDT</option>
-        <option value="FHEUSDT:5:0">FHEUSDT</option>
-        <option value="WALUSDT:4:0">WALUSDT</option>
-        <option value="GUNUSDT:5:0">GUNUSDT</option>
-        <option value="ZRXUSDT:4:1">ZRXUSDT</option>
-        <option value="RPLUSDT:3:1">RPLUSDT</option>
-        <option value="ALICEUSDT:3:1">ALICEUSDT</option>
-        <option value="IMXUSDT:4:0">IMXUSDT</option>
-        <option value="ENAUSDT:4:0">ENAUSDT</option>
-        <option value="ADAUSDT:4:0">ADAUSDT</option>
-        <option value="AAVEUSDT:2:1">AAVEUSDT</option>
-        <option value="FARTCOINUSDT:4:1">FARTCOINUSDT</option>
-        <option value="BNBUSDT:2:2">BNBUSDT</option>
-        <option value="WIFUSDT:4:1">WIFUSDT</option>
-        <option value="HBARUSDT:5:0">HBARUSDT</option>
-        <option value="LTCUSDT:2:3">LTCUSDT</option>
-        <option value="ONDOUSDT:4:1">ONDOUSDT</option>
-        <option value="1000BONKUSDT:6:0">1000BONKUSDT</option>
-        <option value="AVAXUSDT:3:0">AVAXUSDT</option>
-        <option value="TRXUSDT:5:0">TRXUSDT</option>
-        <option value="WLDUSDT:4:0">WLDUSDT</option>
-        <option value="XLMUSDT:5:0">XLMUSDT</option>
-        <option value="1000SHIBUSDT:6:0">1000SHIBUSDT</option>
-        <option value="DOTUSDT:3:1">DOTUSDT</option>
-        <option value="NEARUSDT:3:0">NEARUSDT</option>
-        <option value="JUPUSDT:4:0">JUPUSDT</option>
-        <option value="ALGOUSDT:4:1">ALGOUSDT</option>
-        <option value="NEIROUSDT:7:0">NEIROUSDT</option>
-        <option value="ORDIUSDT:3:1">ORDIUSDT</option>
-        <option value="AI16ZUSDT:4:1">AI16ZUSDT</option>
-        <option value="AIXBTUSDT:5:0">AIXBTUSDT</option>
-        <option value="FILUSDT:3:1">FILUSDT</option>
-        <option value="LDOUSDT:4:0">LDOUSDT</option>
-        <option value="SWARMSUSDT:4:0">SWARMSUSDT</option>
-        <option value="CRVUSDT:3:1">CRVUSDT</option>
-        <option value="TIAUSDT:4:0">TIAUSDT</option>
-        <option value="PENGUUSDT:6:0">PENGUUSDT</option>
-        <option value="ARBUSDT:4:1">ARBUSDT</option>
-        <option value="UNIUSDT:3:0">UNIUSDT</option>
-        <option value="VIRTUALUSDT:4:1">VIRTUALUSDT</option>
-        <option value="BCHUSDT:2:3">BCHUSDT</option>
-        <option value="SPXUSDT:4:0">SPXUSDT</option>
-        <option value="ENSUSDT:3:1">ENSUSDT</option>
-        <option value="ETCUSDT:3:2">ETCUSDT</option>
-        <option value="APTUSDT:4:1">APTUSDT</option>
-        <option value="POPCATUSDT:4:0">POPCATUSDT</option>
-        <option value="GALAUSDT:5:0">GALAUSDT</option>
-        <option value="OPUSDT:4:1">OPUSDT</option>
-        <option value="BOMEUSDT:6:0">BOMEUSDT</option>
-        <option value="FETUSDT:4:0">FETUSDT</option>
-        <option value="INJUSDT:3:1">INJUSDT</option>
-        <option value="GMTUSDT:5:0">GMTUSDT</option>
-        <option value="SANDUSDT:5:0">SANDUSDT</option>
-        <option value="RAYSOLUSDT:4:1">RAYSOLUSDT</option>
-        <option value="1000CHEEMSUSDT:7:0">1000CHEEMSUSDT</option>
-        <option value="GRIFFAINUSDT:5:0">GRIFFAINUSDT</option>
-        <option value="1000FLOKIUSDT:5:0">1000FLOKIUSDT</option>
-        <option value="SEIUSDT:4:0">SEIUSDT</option>
-        <option value="TURBOUSDT:7:0">TURBOUSDT</option>
-        <option value="MOVEUSDT:4:0">MOVEUSDT</option>
-        <option value="1000SATSUSDT:7:0">1000SATSUSDT</option>
-        <option value="ATOMUSDT:3:2">ATOMUSDT</option>
-        <option value="DYDXUSDT:3:1">DYDXUSDT</option>
-        <option value="APEUSDT:4:0">APEUSDT</option>
-        <option value="TONUSDT:4:1">TONUSDT</option>
-        <option value="ZENUSDT:3:1">ZENUSDT</option>
-        <option value="RUNEUSDT:3:0">RUNEUSDT</option>
-        <option value="TRUMPUSDT:3:2">TRUMPUSDT</option>
-        <option value="ARCUSDT:5:0">ARCUSDT</option>
-        <option value="JTOUSDT:4:0">JTOUSDT</option>
-        <option value="DOGSUSDT:7:0">DOGSUSDT</option>
-        <option value="AVAAIUSDT:5:0">AVAAIUSDT</option>
-        <option value="VETUSDT:6:0">VETUSDT</option>
-        <option value="CHILLGUYUSDT:5:0">CHILLGUYUSDT</option>
-        <option value="ARKMUSDT:4:0">ARKMUSDT</option>
-        <option value="ZEREBROUSDT:5:0">ZEREBROUSDT</option>
-        <option value="STXUSDT:4:0">STXUSDT</option>
-        <option value="NOTUSDT:6:0">NOTUSDT</option>
-        <option value="SUSHIUSDT:4:0">SUSHIUSDT</option>
-        <option value="ICPUSDT:3:0">ICPUSDT</option>
-        <option value="MORPHOUSDT:4:1">MORPHOUSDT</option>
-        <option value="VANAUSDT:3:2">VANAUSDT</option>
-        <option value="JASMYUSDT:6:0">JASMYUSDT</option>
-        <option value="PENDLEUSDT:4:0">PENDLEUSDT</option>
-        <option value="CGPTUSDT:5:0">CGPTUSDT</option>
-        <option value="MEUSDT:3:1">MEUSDT</option>
-        <option value="ALCHUSDT:5:0">ALCHUSDT</option>
-        <option value="COOKIEUSDT:4:0">COOKIEUSDT</option>
-        <option value="SONICUSDT:4:1">SONICUSDT</option>
-        <option value="ZROUSDT:4:1">ZROUSDT</option>
-        <option value="1000RATSUSDT:5:0">1000RATSUSDT</option>
-        <option value="MEMEUSDT:6:0">MEMEUSDT</option>
-        <option value="AIUSDT:5:0">AIUSDT</option>
-        <option value="STRKUSDT:4:1">STRKUSDT</option>
-        <option value="AXSUSDT:3:0">AXSUSDT</option>
-        <option value="1000CATUSDT:5:0">1000CATUSDT</option>
-        <option value="GRTUSDT:5:0">GRTUSDT</option>
-        <option value="PYTHUSDT:5:0">PYTHUSDT</option>
-        <option value="MANAUSDT:4:0">MANAUSDT</option>
-        <option value="MKRUSDT:1:3">MKRUSDT</option>
-        <option value="COMPUSDT:2:3">COMPUSDT</option>
-        <option value="THETAUSDT:4:1">THETAUSDT</option>
-        <option value="XTZUSDT:3:1">XTZUSDT</option>
-        <option value="CHZUSDT:5:0">CHZUSDT</option>
-        <option value="ARUSDT:3:1">ARUSDT</option>
-        <option value="CFXUSDT:5:0">CFXUSDT</option>
-        <option value="MASKUSDT:4:0">MASKUSDT</option>
-        <option value="DEXEUSDT:3:2">DEXEUSDT</option>
-        <option value="XAIUSDT:5:0">XAIUSDT</option>
-        <option value="FLOWUSDT:3:1">FLOWUSDT</option>
-        <option value="STGUSDT:4:0">STGUSDT</option>
-        <option value="BBUSDT:5:0">BBUSDT</option>
-        <option value="NEOUSDT:3:2">NEOUSDT</option>
-        <option value="PHAUSDT:5:0">PHAUSDT</option>
-        <option value="ORCAUSDT:3:1">ORCAUSDT</option>
-        <option value="MANTAUSDT:4:1">MANTAUSDT</option>
-        <option value="ONTUSDT:4:1">ONTUSDT</option>
-        <option value="SXPUSDT:4:1">SXPUSDT</option>
-        <option value="1000LUNCUSDT:5:0">1000LUNCUSDT</option>
-        <option value="WUSDT:5:1">WUSDT</option>
-        <option value="HIVEUSDT:5:0">HIVEUSDT</option>
-        <option value="ZILUSDT:5:0">ZILUSDT</option>
-        <option value="BIGTIMEUSDT:5:0">BIGTIMEUSDT</option>
-        <option value="MEWUSDT:6:0">MEWUSDT</option>
-      </select>
-      <input type="radio" id="1m" name="period" onclick="updatePeriod('1m')"> 1m
-      <input type="radio" id="3m" name="period" onclick="updatePeriod('3m')"> 3m
-      <input type="radio" id="5m" name="period" onclick="updatePeriod('5m')"> 5m
-      <input type="radio" id="15m" name="period" checked onclick="updatePeriod('15m')"> 15m
-      <input type="radio" id="30m" name="period" onclick="updatePeriod('30m')"> 30m
-      <input type="radio" id="1h" name="period" onclick="updatePeriod('1h')"> 1h
-      <input type="radio" id="2h" name="period" onclick="updatePeriod('2h')"> 2h
-      <input type="radio" id="4h" name="period" onclick="updatePeriod('4h')"> 4h
-      <input type="radio" id="6h" name="period" onclick="updatePeriod('6h')"> 6h
-      <input type="radio" id="8h" name="period" onclick="updatePeriod('8h')"> 8h
-      <input type="radio" id="12h" name="period" onclick="updatePeriod('12h')"> 12h
-      <input type="radio" id="1d" name="period" onclick="updatePeriod('1d')"> 1d
+</head>
+<body>
+    <div class="header">
+        <div class="controls">
+            <select id="symbol" onchange="updateSymbol()">
+                <option value="BTCUSDT:1:3">BTC/USDT</option>
+                <option value="ETHUSDT:2:3">ETH/USDT</option>
+                <option value="SOLUSDT:2:0">SOL/USDT</option>
+                <option value="BNBUSDT:2:2">BNB/USDT</option>
+                <option value="XRPUSDT:4:1">XRP/USDT</option>
+                <option value="DOGEUSDT:5:0">DOGE/USDT</option>
+                <option value="ADAUSDT:4:1">ADA/USDT</option>
+                <option value="AVAXUSDT:3:1">AVAX/USDT</option>
+                <option value="DOTUSDT:3:1">DOT/USDT</option>
+                <option value="MATICUSDT:4:0">MATIC/USDT</option>
+            </select>
+
+            <div class="period-group">
+                <button class="period-btn" data-period="1m">1分</button>
+                <button class="period-btn" data-period="5m">5分</button>
+                <button class="period-btn active" data-period="15m">15分</button>
+                <button class="period-btn" data-period="30m">30分</button>
+                <button class="period-btn" data-period="1h">1时</button>
+                <button class="period-btn" data-period="4h">4时</button>
+                <button class="period-btn" data-period="1d">1日</button>
+                <button class="period-btn" data-period="1w">1周</button>
+            </div>
+        </div>
+
+        <div class="indicators">
+            <label class="indicator-toggle">
+                <input type="checkbox" id="showMA" checked> MA均线
+            </label>
+            <label class="indicator-toggle">
+                <input type="checkbox" id="showVolume" checked> 成交量
+            </label>
+            <label class="indicator-toggle">
+                <input type="checkbox" id="showGrid" checked> 网格
+            </label>
+        </div>
+
+        <div class="theme-switch">
+            <span>🌙</span>
+            <label class="switch">
+                <input type="checkbox" id="themeToggle">
+                <span class="slider"></span>
+            </label>
+            <span>☀️</span>
+        </div>
     </div>
-    <canvas id="myCanvas" width="1268" height="460" style="border:1px solid #a9a09bcb;"></canvas>
-    <textarea id="output" >hello</textarea>
+
+    <div class="chart-container">
+        <canvas id="mainChart" width="1400" height="500"></canvas>
+        <canvas id="volumeChart" width="1400" height="100"></canvas>
+
+        <div class="info-panel" id="infoPanel">
+            <div class="info-row">
+                <div class="info-item">
+                    <span class="info-label">开:</span>
+                    <span class="info-value" id="openPrice">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">高:</span>
+                    <span class="info-value" id="highPrice">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">低:</span>
+                    <span class="info-value" id="lowPrice">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">收:</span>
+                    <span class="info-value" id="closePrice">-</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">量:</span>
+                    <span class="info-value" id="volume">-</span>
+                </div>
+            </div>
+            <div class="info-row" id="maInfo">
+                <span class="ma-value" style="color: var(--ma5-color)">MA5: <span id="ma5">-</span></span>
+                <span class="ma-value" style="color: var(--ma10-color)">MA10: <span id="ma10">-</span></span>
+                <span class="ma-value" style="color: var(--ma30-color)">MA30: <span id="ma30">-</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="statusLeft">就绪</span>
+        <span id="statusRight">按 H 显示/隐藏帮助</span>
+    </div>
+
+    <div class="help-panel" id="helpPanel">
+        <h4>快捷键指南</h4>
+        <div class="help-item"><span class="key">D</span> 放大</div>
+        <div class="help-item"><span class="key">F</span> 缩小</div>
+        <div class="help-item"><span class="key">←→</span> 移动</div>
+        <div class="help-item"><span class="key">↑↓</span> 缩放Y轴</div>
+        <div class="help-item"><span class="key">R</span> 重置视图</div>
+        <div class="help-item"><span class="key">G</span> 网格开关</div>
+        <div class="help-item"><span class="key">M</span> MA开关</div>
+        <div class="help-item"><span class="key">V</span> 成交量开关</div>
+        <div class="help-item"><span class="key">H</span> 隐藏帮助</div>
+    </div>
+
     <script>
-      let symbol = "BTCUSDT"
+      // 全局变量
+      let symbol = "BTCUSDT";
       let period = "15m";
-      let version = "1";
-      let postions = new Set();
       let symbolPricePoint = 1;
       let symbolQuantityPoint = 3;
-      let maxPrice = 0;
-      let lastTimerId = null;
-      let minPrice = 999999999;
-      let sl_value = 5;
-      let disPricePerPixel = 0;
-      let latestMaxPrice = 0;
-      let latestPrice = 0;
-      let scaleRatio = 0;
-      let switchEnable = true;
-      let periodEnable = false;
-      let stopEnable = false;
-      let stopPriceExist = false;
-      let stopPrice = 0;
-      let stopSell = false;
-      let options = document.getElementById("symbol").options;
-      let symbolIdx = 0;
-      let rspArr = null;
-      let ctx;
-      let periodarray = ["1m", "3m", "5m", "15m"];
-      let periodidx = 0;
-      function output(text) {
-        textarea = document.getElementById("output");
-        textarea.value += "\n" + text;
-        textarea.scrollTop = textarea.scrollHeight;
-      }
-      function updatePeriod(_period) {
-        period = _period;
-        updateChart();
-      }
-      function updateSymbol() {
-        let sel = document.getElementById("symbol");
-        let arr = sel.options[sel.selectedIndex].value.split(":");
-        symbol = arr[0];
-        symbolPricePoint = parseInt(arr[1]);
-        symbolQuantityPoint = parseInt(arr[2]);
-        for(let i = 0; i < options.length; ++i) {
-          let symbolmix = options[i].value;
-          let arr = symbolmix.split(":");
-          let _symbol = arr[0];
-          if(_symbol == symbol) {
-            symbolIdx = i;
-            break;
+      let klineData = [];
+      let mainCtx, volumeCtx;
+
+      // 视图控制
+      let chartOffset = 0;
+      let candleWidth = 8;
+      let candleSpacing = 2;
+      let isDragging = false;
+      let dragStartX = 0;
+
+      // MA数据缓存
+      let ma5Data = [];
+      let ma10Data = [];
+      let ma30Data = [];
+
+      // 显示控制
+      let showMA = true;
+      let showVolume = true;
+      let showGrid = true;
+      let showCrosshair = true;
+      let mouseX = 0, mouseY = 0;
+
+      // MA计算
+      function calculateMA(data, period) {
+        const ma = [];
+        for (let i = 0; i < data.length; i++) {
+          if (i < period - 1) {
+            ma.push(null);
+            continue;
           }
+          let sum = 0;
+          for (let j = 0; j < period; j++) {
+            sum += parseFloat(data[i - j][4]); // close price
+          }
+          ma.push(sum / period);
         }
-        updateChart();
-        periodidx = 0;
+        return ma;
       }
-      function getPeriod() {
-        if(document.getElementById("1m").checked) {
-          return "1m";
+
+      // 绘制主图
+      function drawMainChart() {
+        const canvas = document.getElementById('mainChart');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        mainCtx.clearRect(0, 0, width, height);
+
+        if (!klineData || klineData.length === 0) return;
+
+        // 计算显示范围
+        const totalWidth = candleWidth + candleSpacing;
+        const visibleCount = Math.floor(width / totalWidth);
+        const startIdx = Math.max(0, klineData.length - visibleCount + chartOffset);
+        const endIdx = Math.min(klineData.length, startIdx + visibleCount);
+
+        // 找出价格范围
+        let maxPrice = 0, minPrice = Infinity;
+        for (let i = startIdx; i < endIdx; i++) {
+          const high = parseFloat(klineData[i][2]);
+          const low = parseFloat(klineData[i][3]);
+          maxPrice = Math.max(maxPrice, high);
+          minPrice = Math.min(minPrice, low);
         }
-        if(document.getElementById("3m").checked) {
-          return "3m";
+
+        const priceRange = maxPrice - minPrice;
+        const padding = priceRange * 0.1;
+        maxPrice += padding;
+        minPrice -= padding;
+
+        // 绘制网格
+        if (showGrid) {
+          mainCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue('--grid-color');
+          mainCtx.lineWidth = 0.5;
+          mainCtx.setLineDash([2, 2]);
+
+          // 横向网格线
+          for (let i = 0; i <= 10; i++) {
+            const y = (height / 10) * i;
+            mainCtx.beginPath();
+            mainCtx.moveTo(0, y);
+            mainCtx.lineTo(width, y);
+            mainCtx.stroke();
+
+            // 价格标签
+            const price = maxPrice - ((maxPrice - minPrice) / 10) * i;
+            mainCtx.fillStyle = getComputedStyle(document.body).getPropertyValue('--text-secondary');
+            mainCtx.font = '11px Arial';
+            mainCtx.fillText(price.toFixed(symbolPricePoint), width - 60, y + 3);
+          }
+
+          mainCtx.setLineDash([]);
         }
-        if(document.getElementById("5m").checked) {
-          return "5m";
-        }
-        if(document.getElementById("15m").checked) {
-          return "15m";
-        }
-        if(document.getElementById("30m").checked) {
-          return "30m";
-        }
-        if(document.getElementById("1h").checked) {
-          return "1h";
-        }
-        if(document.getElementById("2h").checked) {
-          return "2h";
-        }
-        if(document.getElementById("4h").checked) {
-          return "4h";
-        }
-        if(document.getElementById("6h").checked) {
-          return "6h";
-        }
-        if(document.getElementById("8h").checked) {
-          return "8h";
-        }
-        if(document.getElementById("12h").checked) {
-          return "12h";
-        }
-        if(document.getElementById("1d").checked) {
-          return "1d";
-        }
-        if(document.getElementById("3d").checked) {
-          return "3d";
-        }
-        if(document.getElementById("1w").checked) {
-          return "1w";
-        }
-      }
-      function timerFunc() {
-        if(!switchEnable) {
-          lastTimerId = setTimeout(timerFunc, 1000);
-          return;
-        }
-        if(++symbolIdx >= options.length) {
-            symbolIdx = 0;
-        }
-        document.getElementById(period).checked = true;
-        let symbolmix = options[symbolIdx].value;
-        let arr = symbolmix.split(":");
-        symbol = arr[0];
-        symbolPricePoint = parseInt(arr[1]);
-        symbolQuantityPoint = parseInt(arr[2]);
-        output([symbol, symbolPricePoint, symbolQuantityPoint, symbolIdx]);
-        document.getElementById("symbol").value = symbolmix;
-        updateChart();
-        ++periodidx;
-      }
-      function mousedown(x, y) {
-        // output(["mousedown", x, y]);
-        switchEnable = !switchEnable;
-        output("switchEnable: " + switchEnable);
-      }
-      function mousemove(x, y) {
-        redrawChart(2);
-        ctx.beginPath();
-        ctx.strokeStyle = "purple";
-        ctx.setLineDash([3,3]);
-        let price = latestMaxPrice - y * disPricePerPixel;
-        ctx.moveTo(0, y);
-        ctx.lineTo(1200, y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = "purple";
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "start";
-        ctx.fillText(price.toFixed(symbolPricePoint), 1205, y);
-      }
-      function redrawChart(type) {
-        if(type == 0) {
-          scaleRatio += 0.1;
-        } else if(type == 1) {
-          scaleRatio -= 0.1;
-        }
-        // output([scaleRatio, rspArr.length, maxPrice, minPrice]);
-        ctx.clearRect(0, 0, 1268, 460);
-        let disPrice = maxPrice - minPrice;
-        latestMaxPrice = maxPrice + disPrice * scaleRatio;
-        disPrice = disPrice + disPrice * scaleRatio * 2;
-        disPricePerPixel = disPrice / 450;
-        if(type < 2) {
-          // output([latestMaxPrice, disPrice, disPricePerPixel, scaleRatio]);
-        }
-        if(postions.has(symbol)) {
-          ctx.save();
-          ctx.fillStyle = "purple";
-          ctx.textBaseline = "middle";
-          ctx.font = "40px Arial";
-          ctx.globalAlpha = 0.7;
-          ctx.textAlign = "start";
-          ctx.fillText("已持仓", 300, 67);
-          ctx.restore();
-        }
-        for(let i = 0; i < 10; ++i) {
-          ctx.beginPath();
-          ctx.strokeStyle = "#e1dedccb";
-          let price = latestMaxPrice - (i+1) * 42 * disPricePerPixel;
-          ctx.moveTo(0, (i+1) * 42);
-          ctx.lineTo(1200, (i+1) * 42);
-          ctx.stroke();
-          ctx.fillStyle = "black";
-          ctx.textBaseline = "middle";
-          ctx.textAlign = "start";
-          ctx.fillText(price.toFixed(symbolPricePoint), 1205, (i+1) * 42);
-        }
-        if(rspArr == null) {
-          return;
-        }
-        let kCount = rspArr.length;
-        let latestDate = new Date(rspArr[kCount-1][0]);
-        ctx.textAlign = "center";
-        ctx.textBaseline = "hanging";
-        ctx.fillText(latestDate.toLocaleTimeString(), 1200, 440);
-        for(let i = 0; i < kCount; ++i) {
-          let arr = rspArr[i];
-          let open = arr[1];
-          let high = arr[2];
-          let low = arr[3];
-          let close = arr[4];
-          let x = (i + 200 - kCount) * 6;
-          let y = 0;
-          let h = 0;
-          ctx.beginPath();
-          if(close > open) {
-            ctx.fillStyle = "green";
-            ctx.strokeStyle = "green";
-            y = parseInt((latestMaxPrice - close) / disPricePerPixel);
-            h = close - open;
+
+        // 绘制K线
+        for (let i = startIdx; i < endIdx; i++) {
+          const idx = i - startIdx;
+          const x = idx * totalWidth + totalWidth / 2;
+
+          const open = parseFloat(klineData[i][1]);
+          const high = parseFloat(klineData[i][2]);
+          const low = parseFloat(klineData[i][3]);
+          const close = parseFloat(klineData[i][4]);
+
+          const yHigh = ((maxPrice - high) / (maxPrice - minPrice)) * height;
+          const yLow = ((maxPrice - low) / (maxPrice - minPrice)) * height;
+          const yOpen = ((maxPrice - open) / (maxPrice - minPrice)) * height;
+          const yClose = ((maxPrice - close) / (maxPrice - minPrice)) * height;
+
+          // 设置颜色
+          const isUp = close >= open;
+          mainCtx.strokeStyle = isUp ? getComputedStyle(document.body).getPropertyValue('--up-color')
+                                    : getComputedStyle(document.body).getPropertyValue('--down-color');
+          mainCtx.fillStyle = mainCtx.strokeStyle;
+          mainCtx.lineWidth = 1;
+
+          // 画影线
+          mainCtx.beginPath();
+          mainCtx.moveTo(x, yHigh);
+          mainCtx.lineTo(x, yLow);
+          mainCtx.stroke();
+
+          // 画实体
+          const bodyHeight = Math.abs(yClose - yOpen) || 1;
+          const bodyY = Math.min(yOpen, yClose);
+
+          if (isUp) {
+            mainCtx.strokeRect(x - candleWidth/2, bodyY, candleWidth, bodyHeight);
           } else {
-            ctx.fillStyle = "red";
-            ctx.strokeStyle = "red";
-            y = parseInt((latestMaxPrice - open) / disPricePerPixel);
-            h = open - close;
+            mainCtx.fillRect(x - candleWidth/2, bodyY, candleWidth, bodyHeight);
           }
-          h = parseInt(h / disPricePerPixel);
-          ctx.fillRect(x, y, 4, h);
-          ctx.moveTo(x + 2, y);
-          ctx.lineTo(x + 2, parseInt((latestMaxPrice - high) / disPricePerPixel));
-          ctx.moveTo(x + 2, y + h);
-          ctx.lineTo(x + 2, parseInt((latestMaxPrice - low) / disPricePerPixel));
-          ctx.stroke();
+        }
+
+        // 计算并绘制MA均线
+        if (showMA && klineData.length > 0) {
+          // 计算MA值（只在数据更新时重算）
+          if (ma5Data.length !== klineData.length) {
+            ma5Data = calculateMA(klineData, 5);
+            ma10Data = calculateMA(klineData, 10);
+            ma30Data = calculateMA(klineData, 30);
+          }
+
+          // 绘制MA5
+          drawMALine(ma5Data, startIdx, endIdx, maxPrice, minPrice, height, totalWidth, '--ma5-color');
+          // 绘制MA10
+          drawMALine(ma10Data, startIdx, endIdx, maxPrice, minPrice, height, totalWidth, '--ma10-color');
+          // 绘制MA30
+          drawMALine(ma30Data, startIdx, endIdx, maxPrice, minPrice, height, totalWidth, '--ma30-color');
+
+          // 更新最新的MA值到面板
+          const lastIdx = klineData.length - 1;
+          if (lastIdx >= 0) {
+            document.getElementById('ma5').textContent = ma5Data[lastIdx] ? ma5Data[lastIdx].toFixed(symbolPricePoint) : '-';
+            document.getElementById('ma10').textContent = ma10Data[lastIdx] ? ma10Data[lastIdx].toFixed(symbolPricePoint) : '-';
+            document.getElementById('ma30').textContent = ma30Data[lastIdx] ? ma30Data[lastIdx].toFixed(symbolPricePoint) : '-';
+          }
+        }
+
+        // 绘制十字光标
+        if (showCrosshair && mouseX > 0 && mouseY > 0) {
+          mainCtx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+          mainCtx.lineWidth = 0.5;
+          mainCtx.setLineDash([5, 5]);
+
+          // 垂直线
+          mainCtx.beginPath();
+          mainCtx.moveTo(mouseX, 0);
+          mainCtx.lineTo(mouseX, height);
+          mainCtx.stroke();
+
+          // 水平线
+          mainCtx.beginPath();
+          mainCtx.moveTo(0, mouseY);
+          mainCtx.lineTo(width, mouseY);
+          mainCtx.stroke();
+
+          mainCtx.setLineDash([]);
+
+          // 显示价格
+          const price = maxPrice - ((mouseY / height) * (maxPrice - minPrice));
+          mainCtx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+          mainCtx.fillRect(width - 70, mouseY - 10, 65, 20);
+          mainCtx.fillStyle = 'white';
+          mainCtx.font = 'bold 11px Arial';
+          mainCtx.fillText(price.toFixed(symbolPricePoint), width - 65, mouseY + 3);
+
+          // 更新信息面板（鼠标悬停时）
+          const candleIdx = Math.floor(mouseX / totalWidth) + startIdx;
+          if (candleIdx >= startIdx && candleIdx < endIdx && candleIdx < klineData.length) {
+            updateInfoPanel(klineData[candleIdx], ma5Data[candleIdx], ma10Data[candleIdx], ma30Data[candleIdx]);
+          }
         }
       }
 
-      function updateChart() {
-        minPrice = 999999999;
-        maxPrice = 0;
-        scaleRatio = 0;
-        stopEnable = false;
-        stopPriceExist = false;
-        var xhr = new XMLHttpRequest();
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4) {
-            let rspObj = JSON.parse(xhr.response);
-            let retcode = rspObj.retcode;
-            if(retcode == 1) {
-              alert(`你的版本太低，请刷新网站
-Your version is outdated, please refresh the website.`);
-              return;
-            }
-            if(retcode == 2) {
-              alert(`目前网站的访问量太大，请稍候重试
-Our website is currently experiencing high traffic, please try again later.`);
-              return;
-            }
-            if(retcode == 3) {
-              alert(`检测到你的访问频率过高，请稍候重试
-We've detected unusually high traffic from your device, please try again later.`);
-              return;
-            }
-            if(retcode == 100) {
-              let msg = rspObj.msg;
-              alert(msg);
-              return;
-            }
-            if(retcode != 0) {
-              alert(`返回码非法，返回码不为0
-Invalid return code: the value must be 0.`);
-              return;
-            }
-            rspArr = rspObj.data;
-            let kCount = rspArr.length;
-            output(kCount);
-            rspArr.forEach(function(arr, idx) {
-              let high = parseFloat(arr[2]);
-              let low = parseFloat(arr[3]);
-              if(high > maxPrice) {
-                maxPrice = high;
-              }
-              if(low < minPrice) {
-                minPrice = low;
-              }
-            });
-            let disPrice = maxPrice - minPrice;
-            latestMaxPrice = maxPrice;
-            disPricePerPixel = disPrice / 450;
-            ctx.clearRect(0, 0, 1268, 460);
-            for(let i = 0; i < 10; ++i) {
-              ctx.beginPath();
-              ctx.strokeStyle = "#e1dedccb";
-              let price = maxPrice - (i+1) * 42 * disPricePerPixel;
-              ctx.moveTo(0, (i+1) * 42);
-              ctx.lineTo(1200, (i+1) * 42);
-              ctx.stroke();
-              ctx.fillStyle = "black";
-              ctx.textBaseline = "middle";
-              ctx.textAlign = "start";
-              ctx.fillText(price.toFixed(symbolPricePoint), 1205, (i+1) * 42);
-            }
-            let latestDate = new Date(rspArr[kCount-1][0]);
-            ctx.textAlign = "center";
-            ctx.textBaseline = "hanging";
-            ctx.fillText(latestDate.toLocaleTimeString(), 1200, 440);
-            for(let i = 0; i < kCount; ++i) {
-              let arr = rspArr[i];
-              let open = parseFloat(arr[1]);
-              let high = parseFloat(arr[2]);
-              let low = parseFloat(arr[3]);
-              let close = parseFloat(arr[4]);
-              latestPrice = close;
-              let x = (i + 200 - kCount) * 6;
-              let y = 0;
-              let h = 0;
-              ctx.beginPath();
-              if(close > open) {
-                ctx.fillStyle = "green";
-                ctx.strokeStyle = "green";
-                y = parseInt((maxPrice - close) / disPricePerPixel);
-                h = close - open;
-              } else {
-                ctx.fillStyle = "red";
-                ctx.strokeStyle = "red";
-                y = parseInt((maxPrice - open) / disPricePerPixel);
-                h = open - close;
-              }
-              h = parseInt(h / disPricePerPixel);
-              ctx.fillRect(x, y, 4, h);
-              ctx.moveTo(x + 2, y);
-              ctx.lineTo(x + 2, parseInt((maxPrice - high) / disPricePerPixel));
-              ctx.moveTo(x + 2, y + h);
-              ctx.lineTo(x + 2, parseInt((maxPrice - low) / disPricePerPixel));
-              ctx.stroke();
-            }
-            lastTimerId != null && clearTimeout(lastTimerId);
-            lastTimerId = setTimeout(timerFunc, 10000);
+      // 绘制MA线
+      function drawMALine(maData, startIdx, endIdx, maxPrice, minPrice, height, totalWidth, colorVar) {
+        mainCtx.strokeStyle = getComputedStyle(document.body).getPropertyValue(colorVar);
+        mainCtx.lineWidth = 1.5;
+        mainCtx.beginPath();
+
+        let firstPoint = true;
+        for (let i = startIdx; i < endIdx; i++) {
+          if (maData[i] === null) continue;
+
+          const x = (i - startIdx) * totalWidth + totalWidth / 2;
+          const y = ((maxPrice - maData[i]) / (maxPrice - minPrice)) * height;
+
+          if (firstPoint) {
+            mainCtx.moveTo(x, y);
+            firstPoint = false;
+          } else {
+            mainCtx.lineTo(x, y);
           }
         }
-        xhr.open('post', '/chart', true);
-        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
-        xhr.send("symbol="+symbol+"&period="+period+"&version="+version);
+        mainCtx.stroke();
       }
-      
-      window.onload = function() {
-        output("onload..........");
-        const canvas = document.getElementById("myCanvas");
-        addEventListener("keydown", function(ev) {
-          if(ev.keyCode == 70) {
-            redrawChart(0);
-          } else if(ev.keyCode == 68) {
-            redrawChart(1);
-          } else if(ev.keyCode == 65) {
-            switchEnable = !switchEnable;
-            output("switchEnable: " + switchEnable);
+
+      // 绘制成交量图
+      function drawVolumeChart() {
+        const canvas = document.getElementById('volumeChart');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        volumeCtx.clearRect(0, 0, width, height);
+
+        if (!klineData || klineData.length === 0 || !showVolume) return;
+
+        // 计算显示范围
+        const totalWidth = candleWidth + candleSpacing;
+        const visibleCount = Math.floor(width / totalWidth);
+        const startIdx = Math.max(0, klineData.length - visibleCount + chartOffset);
+        const endIdx = Math.min(klineData.length, startIdx + visibleCount);
+
+        // 找出最大成交量
+        let maxVolume = 0;
+        for (let i = startIdx; i < endIdx; i++) {
+          const volume = parseFloat(klineData[i][5]);
+          maxVolume = Math.max(maxVolume, volume);
+        }
+
+        // 绘制成交量柱
+        for (let i = startIdx; i < endIdx; i++) {
+          const idx = i - startIdx;
+          const x = idx * totalWidth + totalWidth / 2;
+          const volume = parseFloat(klineData[i][5]);
+          const barHeight = (volume / maxVolume) * height * 0.8;
+
+          const open = parseFloat(klineData[i][1]);
+          const close = parseFloat(klineData[i][4]);
+          const isUp = close >= open;
+
+          volumeCtx.fillStyle = isUp ? getComputedStyle(document.body).getPropertyValue('--up-color')
+                                     : getComputedStyle(document.body).getPropertyValue('--down-color');
+          volumeCtx.fillRect(x - candleWidth/2, height - barHeight, candleWidth, barHeight);
+        }
+      }
+
+      // 更新信息面板
+      function updateInfoPanel(candle, ma5, ma10, ma30) {
+        if (!candle) return;
+
+        document.getElementById('openPrice').textContent = parseFloat(candle[1]).toFixed(symbolPricePoint);
+        document.getElementById('highPrice').textContent = parseFloat(candle[2]).toFixed(symbolPricePoint);
+        document.getElementById('lowPrice').textContent = parseFloat(candle[3]).toFixed(symbolPricePoint);
+        document.getElementById('closePrice').textContent = parseFloat(candle[4]).toFixed(symbolPricePoint);
+        document.getElementById('volume').textContent = parseFloat(candle[5]).toFixed(2);
+
+        document.getElementById('ma5').textContent = ma5 ? ma5.toFixed(symbolPricePoint) : '-';
+        document.getElementById('ma10').textContent = ma10 ? ma10.toFixed(symbolPricePoint) : '-';
+        document.getElementById('ma30').textContent = ma30 ? ma30.toFixed(symbolPricePoint) : '-';
+      }
+
+      // 更新数据
+      function updateChart() {
+        const xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState === 4) {
+            try {
+              const response = JSON.parse(xhr.response);
+              if (response.retcode === 0) {
+                klineData = response.data;
+                // 重置MA缓存，强制重新计算
+                ma5Data = [];
+                ma10Data = [];
+                ma30Data = [];
+
+                drawMainChart();
+                drawVolumeChart();
+                updateStatus(`${symbol} - ${period} - ${klineData.length} 根K线`);
+
+                // 显示最新K线的信息
+                if (klineData.length > 0) {
+                  const lastCandle = klineData[klineData.length - 1];
+                  updateInfoPanel(lastCandle, null, null, null);
+                }
+              }
+            } catch (e) {
+              console.error('数据解析错误:', e);
+            }
           }
-        });
-        canvas.addEventListener("mousedown", function(ev) {
-          let rect = canvas.getBoundingClientRect();
-          let x = ev.clientX - rect.left;
-          let y = ev.clientY - rect.top;
-          mousedown(x, y);
-        });
-        canvas.addEventListener("mousemove", function(ev) {
-          let rect = canvas.getBoundingClientRect();
-          let x = ev.clientX - rect.left;
-          let y = ev.clientY - rect.top;
-          mousemove(x, y);
-        });
-        ctx = canvas.getContext("2d");
+        };
+        xhr.open('POST', '/chart', true);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.send(`symbol=${symbol}&period=${period}&version=1`);
+      }
+
+      // 更新状态栏
+      function updateStatus(text) {
+        document.getElementById('statusLeft').textContent = `${new Date().toLocaleTimeString('zh-CN')} - ${text}`;
+      }
+
+      // 更新币种
+      function updateSymbol() {
+        const sel = document.getElementById('symbol');
+        const arr = sel.value.split(':');
+        symbol = arr[0];
+        symbolPricePoint = parseInt(arr[1]);
+        symbolQuantityPoint = parseInt(arr[2]);
+        chartOffset = 0;
         updateChart();
       }
-      </script>
-  </body>
+
+      // 初始化
+      window.onload = function() {
+        mainCtx = document.getElementById('mainChart').getContext('2d');
+        volumeCtx = document.getElementById('volumeChart').getContext('2d');
+
+        // 周期按钮
+        document.querySelectorAll('.period-btn').forEach(btn => {
+          btn.addEventListener('click', function() {
+            document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            period = this.dataset.period;
+            chartOffset = 0;
+            updateChart();
+          });
+        });
+
+        // 主题切换
+        document.getElementById('themeToggle').addEventListener('change', function() {
+          document.body.classList.toggle('dark', this.checked);
+          drawMainChart();
+          drawVolumeChart();
+        });
+
+        // 指标开关
+        document.getElementById('showMA').addEventListener('change', function() {
+          showMA = this.checked;
+          drawMainChart();
+        });
+
+        document.getElementById('showVolume').addEventListener('change', function() {
+          showVolume = this.checked;
+          drawVolumeChart();
+        });
+
+        document.getElementById('showGrid').addEventListener('change', function() {
+          showGrid = this.checked;
+          drawMainChart();
+        });
+
+        // 鼠标事件
+        const mainCanvas = document.getElementById('mainChart');
+
+        mainCanvas.addEventListener('mousedown', function(e) {
+          isDragging = true;
+          dragStartX = e.clientX;
+          this.style.cursor = 'grabbing';
+        });
+
+        mainCanvas.addEventListener('mouseup', function() {
+          isDragging = false;
+          this.style.cursor = 'crosshair';
+        });
+
+        mainCanvas.addEventListener('mouseleave', function() {
+          isDragging = false;
+          mouseX = 0;
+          mouseY = 0;
+          this.style.cursor = 'crosshair';
+          drawMainChart();
+        });
+
+        mainCanvas.addEventListener('mousemove', function(e) {
+          const rect = this.getBoundingClientRect();
+          mouseX = e.clientX - rect.left;
+          mouseY = e.clientY - rect.top;
+
+          if (isDragging) {
+            const dx = e.clientX - dragStartX;
+            if (Math.abs(dx) > 5) {
+              chartOffset += Math.floor(dx / 5);
+              chartOffset = Math.min(0, Math.max(chartOffset, -(klineData.length - 50)));
+              dragStartX = e.clientX;
+            }
+          }
+          drawMainChart();
+        });
+
+        // 滚轮缩放
+        mainCanvas.addEventListener('wheel', function(e) {
+          e.preventDefault();
+          if (e.deltaY < 0) {
+            candleWidth = Math.min(20, candleWidth + 1);
+          } else {
+            candleWidth = Math.max(2, candleWidth - 1);
+          }
+          drawMainChart();
+          drawVolumeChart();
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+          switch(e.keyCode) {
+            case 68: // D - 放大
+              candleWidth = Math.min(20, candleWidth + 1);
+              drawMainChart();
+              drawVolumeChart();
+              break;
+            case 70: // F - 缩小
+              candleWidth = Math.max(2, candleWidth - 1);
+              drawMainChart();
+              drawVolumeChart();
+              break;
+            case 37: // 左箭头
+              chartOffset = Math.max(chartOffset - 5, -(klineData.length - 50));
+              drawMainChart();
+              drawVolumeChart();
+              break;
+            case 39: // 右箭头
+              chartOffset = Math.min(0, chartOffset + 5);
+              drawMainChart();
+              drawVolumeChart();
+              break;
+            case 82: // R - 重置
+              chartOffset = 0;
+              candleWidth = 8;
+              drawMainChart();
+              drawVolumeChart();
+              break;
+            case 71: // G - 网格
+              showGrid = !showGrid;
+              document.getElementById('showGrid').checked = showGrid;
+              drawMainChart();
+              break;
+            case 77: // M - MA
+              showMA = !showMA;
+              document.getElementById('showMA').checked = showMA;
+              drawMainChart();
+              break;
+            case 86: // V - 成交量
+              showVolume = !showVolume;
+              document.getElementById('showVolume').checked = showVolume;
+              drawVolumeChart();
+              break;
+            case 72: // H - 帮助
+              const help = document.getElementById('helpPanel');
+              help.style.display = help.style.display === 'none' ? 'block' : 'none';
+              break;
+          }
+        });
+
+        // 定时更新
+        updateChart();
+        setInterval(updateChart, 10000);
+      };
+    </script>
+</body>
 </html>
